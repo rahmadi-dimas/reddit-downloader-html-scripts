@@ -15,10 +15,10 @@
     const CLICK_DELAY_MS = 2000;
 
     // How often to scan for new "load more" buttons
-    const SCAN_INTERVAL_MS = 3000;
+    const SCAN_INTERVAL_MS = 10000;
 
     // Cap total number of auto-clicks to prevent runaway loops
-    const MAX_CLICKS = 100;
+    const MAX_CLICKS = 200;
 
     let clickCount = 0;
     let queue = [];
@@ -47,7 +47,7 @@
             }
         });
 
-        // standalone "continue this thread" links
+        // standalone "continue this thread" and "load more comments" links
         document.querySelectorAll('a.button:not([data-loaded])').forEach(link => {
             const text = link.textContent.trim().toLowerCase();
             if (text === 'loading...') return;
@@ -89,6 +89,7 @@
 
         btn.click();
         clickCount++;
+        uiButton.textContent = `Loading ${clickCount}/${MAX_CLICKS}`;
 
         if (clickCount >= MAX_CLICKS) {
             console.log(`[LoadMoreComments] Reached ${MAX_CLICKS} click limit. Stopping.`);

@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  const DELAY_MS = 500;
+  const DELAY_MS = 1000;
 
   function openAllThreads(button) {
     const links = Array.from(
