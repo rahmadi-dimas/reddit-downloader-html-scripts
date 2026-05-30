@@ -25,6 +25,10 @@
 
     for (const comment of listingEl.querySelectorAll(":scope > .thing.comment")) {
       const author = comment.dataset.author || "[deleted]";
+      if (author.includes("AutoModerator")) {
+        continue;
+      }
+
       const timeEl = comment.querySelector(":scope > .entry .tagline time");
       const datetime = formatDate(timeEl?.getAttribute("datetime") || "");
       const bodyEl = comment.querySelector(":scope > .entry .usertext-body .md");
@@ -44,7 +48,9 @@
   }
 
   function exportPost() {
-    const postThing = document.querySelector("#siteTable > .thing:not(.comment)");
+    const postThing =
+      document.querySelector("#siteTable > .thing:not(.comment)") ||
+      document.querySelector("#siteTable > .pinnable-placeholder > .pinnable-content > .thing:not(.comment)");
     if (!postThing) {
       alert("Could not find the post on this page.");
       return;
@@ -58,6 +64,9 @@
     const datetime = formatDate(timeEl?.getAttribute("datetime") || "");
     const selftextEl = postThing.querySelector(".usertext-body .md");
     const selftext = selftextEl ? selftextEl.innerText.trim() : "";
+    // For link/video/image posts (.thing without .self), capture the target URL.
+    const isSelf = postThing.classList.contains("self");
+    const postUrl = !isSelf ? (postThing.dataset.url || "") : "";
     const retrievalTime = new Date().toISOString();
 
     let output = "";
@@ -70,6 +79,8 @@
 
     if (selftext) {
       output += `\n${selftext}\n`;
+    } else if (postUrl) {
+      output += `\n${postUrl}\n`;
     }
 
     output += "\n<--->\n\n";
