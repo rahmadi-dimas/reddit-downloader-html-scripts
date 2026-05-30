@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Reddit Auto Load More Comments (old.reddit.com)
 // @namespace    rahmadi-dimas
-// @version      1.0
+// @version      1.1
 // @description  Automatically clicks "load more comments" buttons on old.reddit.com (DOM-based)
 // @author       rahmadi-dimas
 // @match        https://old.reddit.com/r/*/comments/*
@@ -23,6 +23,9 @@
     let clickCount = 0;
     let queue = [];
     let processing = false;
+    let uiButton = null;
+    let observer = null;
+    let intervalId = null;
 
     /**
      * Finds all unprocessed "load more comments" / "continue this thread" buttons.
@@ -90,6 +93,8 @@
         if (clickCount >= MAX_CLICKS) {
             console.log(`[LoadMoreComments] Reached ${MAX_CLICKS} click limit. Stopping.`);
             processing = false;
+            setButtonDone(`Stopped after ${MAX_CLICKS} clicks`);
+            stopScan();
             return;
         }
 
@@ -99,15 +104,24 @@
         }, CLICK_DELAY_MS);
     }
 
-    function initializeScan(){
-        // Watch for new comment nodes being injected after a click
-        const observer = new MutationObserver(() => scan());
+    function setButtonDone(label = "All comments loaded") {
+        if (!uiButton) return;
+        uiButton.textContent = label;
+    }
+
+    function stopScan() {
+        if (observer) { observer.disconnect(); observer = null; }
+        if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    }
+
+    function initializeScan(btn) {
+        uiButton = btn;
+
+        observer = new MutationObserver(() => scan());
         observer.observe(document.body, { childList: true, subtree: true });
 
-        // Also poll on an interval as a fallback
-        setInterval(scan, SCAN_INTERVAL_MS);
+        intervalId = setInterval(scan, SCAN_INTERVAL_MS);
 
-        // Initial scan once the page is ready
         scan();
     }
 
@@ -117,6 +131,9 @@
         if (buttons.length > 0) {
             queue.push(...buttons);
             processQueue();
+        } else if (queue.length === 0 && !processing && uiButton) {
+            setButtonDone();
+            stopScan();
         }
     }
       
@@ -132,9 +149,14 @@
         "border-radius: 3px; cursor: pointer; font-size: 13px; font-family: sans-serif;" +
         "font-weight: bold;";
 
-        button.addEventListener("mouseenter", () => { button.style.background = "#e03d00"; });
-        button.addEventListener("mouseleave", () => { button.style.background = "#ff4500"; });
-        button.addEventListener("click", initializeScan);
+        button.addEventListener("mouseenter", () => { if (!button.disabled) button.style.background = "#e03d00"; });
+        button.addEventListener("mouseleave", () => { if (!button.disabled) button.style.background = "#ff4500"; });
+        button.addEventListener("click", () => {
+            button.disabled = true;
+            button.style.background = "#999";
+            button.textContent = "Loading comments…";
+            initializeScan(button);
+        });
 
         container.appendChild(button);
 
